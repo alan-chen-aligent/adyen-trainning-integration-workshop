@@ -1,4 +1,5 @@
 const clientKey = document.getElementById("clientKey").innerHTML;
+const type = document.getElementById("type").innerHTML;
 const { AdyenCheckout, Dropin } = window.AdyenWeb;
 
 // Starts the (Adyen.Web) AdyenCheckout with your specified configuration by calling the `/paymentMethods` endpoint.
@@ -29,7 +30,7 @@ async function startCheckout() {
                 console.info("onSubmit", state, component, actions);
                 try {
                     if (state.isValid) {
-                        const { action, order, resultCode } = await fetch("/api/tokenise", {
+                        const { action, order, resultCode } = await fetch("/api/preauthorisation", {
                             method: "POST",
                             body: state.data ? JSON.stringify(state.data) : "",
                             headers: {
