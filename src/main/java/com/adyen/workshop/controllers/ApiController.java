@@ -19,12 +19,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+
 /**
  * REST controller for using the Adyen payments API.
  */
 @RestController
 public class ApiController {
     private final Logger log = LoggerFactory.getLogger(ApiController.class);
+
+    // Shared shopper reference for tokenization — in production use a real shopper identifier (e.g. user ID)
+    private static final String SHOPPER_REFERENCE = "test-shopper-1";
 
     private final ApplicationConfiguration applicationConfiguration;
     private final PaymentsApi paymentsApi;
@@ -103,6 +107,79 @@ public class ApiController {
         log.info("PaymentsRequest {}", paymentRequest);
         var response = paymentsApi.payments(paymentRequest, requestOptions); // Notice how we're adding this property to our existing code*
         log.info("PaymentsResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Tokenization Step 1 - Zero-auth payment to tokenize a card (0 USD).
+    // The RECURRING_CONTRACT webhook will contain the recurringDetailReference (token).
+    @PostMapping("/api/tokenise")
+    public ResponseEntity<PaymentResponse> tokenise(@RequestBody PaymentRequest body) throws IOException, ApiException {
+        var paymentRequest = new PaymentRequest();
+
+        var amount = new Amount()
+                .currency("USD")
+                .value(0L);
+        paymentRequest.setAmount(amount);
+        paymentRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        paymentRequest.setChannel(PaymentRequest.ChannelEnum.WEB);
+        paymentRequest.setPaymentMethod(body.getPaymentMethod());
+
+        var orderRef = UUID.randomUUID().toString();
+        paymentRequest.setReference(orderRef);
+        paymentRequest.setReturnUrl("http://localhost:8080/handleShopperRedirect");
+
+        paymentRequest.setShopperReference(SHOPPER_REFERENCE);
+        paymentRequest.setStorePaymentMethod(true);
+        paymentRequest.setRecurringProcessingModel(PaymentRequest.RecurringProcessingModelEnum.SUBSCRIPTION);
+        paymentRequest.setShopperInteraction(PaymentRequest.ShopperInteractionEnum.ECOMMERCE);
+
+        var authenticationData = new AuthenticationData();
+        authenticationData.setAttemptAuthentication(AuthenticationData.AttemptAuthenticationEnum.ALWAYS);
+        paymentRequest.setAuthenticationData(authenticationData);
+
+        paymentRequest.setOrigin("https://localhost:8080");
+        paymentRequest.setBrowserInfo(body.getBrowserInfo());
+        paymentRequest.setShopperIP("192.168.0.1");
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("TokeniseRequest {}", paymentRequest);
+        var response = paymentsApi.payments(paymentRequest, requestOptions);
+        log.info("TokeniseResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Tokenization Step 3 - Charge the shopper using the recurringDetailReference token from the RECURRING_CONTRACT webhook.
+    // Call manually: POST /makepaymentwithtoken/{token}
+    @PostMapping("/makepaymentwithtoken/{token}")
+    public ResponseEntity<PaymentResponse> makePaymentWithToken(@PathVariable String token) throws IOException, ApiException {
+        var paymentRequest = new PaymentRequest();
+
+        var amount = new Amount()
+                .currency("USD")
+                .value(500L); // $5.00 USD
+        paymentRequest.setAmount(amount);
+        paymentRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+
+        var storedPaymentMethod = new StoredPaymentMethodDetails();
+        storedPaymentMethod.setStoredPaymentMethodId(token);
+        paymentRequest.setPaymentMethod(new CheckoutPaymentMethod(storedPaymentMethod));
+
+        var orderRef = UUID.randomUUID().toString();
+        paymentRequest.setReference(orderRef);
+        paymentRequest.setReturnUrl("http://localhost:8080/handleShopperRedirect");
+
+        paymentRequest.setShopperReference(SHOPPER_REFERENCE);
+        paymentRequest.setShopperInteraction(PaymentRequest.ShopperInteractionEnum.CONTAUTH);
+        paymentRequest.setRecurringProcessingModel(PaymentRequest.RecurringProcessingModelEnum.SUBSCRIPTION);
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("PaymentWithTokenRequest token={} {}", token, paymentRequest);
+        var response = paymentsApi.payments(paymentRequest, requestOptions);
+        log.info("PaymentWithTokenResponse {}", response);
         return ResponseEntity.ok().body(response);
     }
 

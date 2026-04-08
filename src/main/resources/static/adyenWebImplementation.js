@@ -29,7 +29,7 @@ async function startCheckout() {
                 console.info("onSubmit", state, component, actions);
                 try {
                     if (state.isValid) {
-                        const { action, order, resultCode } = await fetch("/api/payments", {
+                        const { action, order, resultCode } = await fetch("/api/tokenise", {
                             method: "POST",
                             body: state.data ? JSON.stringify(state.data) : "",
                             headers: {
@@ -74,8 +74,8 @@ async function startCheckout() {
                 holderNameRequired: true,
                 name: "Credit or debit card",
                 amount: {
-                    value: 9998,
-                    currency: "EUR",
+                    value: 0,
+                    currency: "USD",
                 },
                 placeholders: {
                     cardNumber: '1234 5678 9012 3456',
