@@ -260,7 +260,7 @@ public class ApiController {
             @RequestParam(defaultValue = "9998") long amount,
             @RequestParam(defaultValue = "EUR") String currency) throws IOException, ApiException {
 
-        var captureRequest = new CreatePaymentCaptureRequest();
+        var captureRequest = new PaymentCaptureRequest();
         captureRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
         captureRequest.setAmount(new Amount().currency(currency).value(amount));
 
@@ -276,7 +276,7 @@ public class ApiController {
     // Preauthorisation Step 4 - Cancel an authorised payment
     @PostMapping("/api/cancel")
     public ResponseEntity<PaymentCancelResponse> cancel(@RequestParam String pspReference) throws IOException, ApiException {
-        var cancelRequest = new CreatePaymentCancelRequest();
+        var cancelRequest = new PaymentCancelRequest();
         cancelRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
         cancelRequest.setReference(UUID.randomUUID().toString());
 
@@ -296,7 +296,7 @@ public class ApiController {
             @RequestParam(defaultValue = "9998") long amount,
             @RequestParam(defaultValue = "EUR") String currency) throws IOException, ApiException {
 
-        var refundRequest = new CreatePaymentRefundRequest();
+        var refundRequest = new PaymentRefundRequest();
         refundRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
         refundRequest.setAmount(new Amount().currency(currency).value(amount));
 
