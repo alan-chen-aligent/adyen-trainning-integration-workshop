@@ -55,6 +55,15 @@ public class WebhookController {
             // Success, log it for now
             log.info("Received webhook with event {}", item.toString());
 
+            // Tokenization: extract recurringDetailReference from RECURRING_CONTRACT webhooks
+            if ("RECURRING_CONTRACT".equals(item.getEventCode())) {
+                var additionalData = item.getAdditionalData();
+                String recurringDetailReference = additionalData != null
+                        ? additionalData.get("recurring.recurringDetailReference")
+                        : null;
+                log.info("RECURRING_CONTRACT received - recurringDetailReference (token): {}", recurringDetailReference);
+            }
+
             return ResponseEntity.accepted().build();
         } catch (SignatureException e) {
             // Handle invalid signature
