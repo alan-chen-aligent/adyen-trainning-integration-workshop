@@ -3,6 +3,7 @@ package com.adyen.workshop.controllers;
 import com.adyen.model.RequestOptions;
 import com.adyen.model.checkout.*;
 import com.adyen.workshop.configurations.ApplicationConfiguration;
+import com.adyen.service.checkout.ModificationsApi;
 import com.adyen.service.checkout.PaymentsApi;
 import com.adyen.service.exception.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,10 +33,12 @@ public class ApiController {
 
     private final ApplicationConfiguration applicationConfiguration;
     private final PaymentsApi paymentsApi;
+    private final ModificationsApi modificationsApi;
 
-    public ApiController(ApplicationConfiguration applicationConfiguration, PaymentsApi paymentsApi) {
+    public ApiController(ApplicationConfiguration applicationConfiguration, PaymentsApi paymentsApi, ModificationsApi modificationsApi) {
         this.applicationConfiguration = applicationConfiguration;
         this.paymentsApi = paymentsApi;
+        this.modificationsApi = modificationsApi;
     }
 
     // Step 0
@@ -126,7 +129,7 @@ public class ApiController {
 
         var orderRef = UUID.randomUUID().toString();
         paymentRequest.setReference(orderRef);
-        paymentRequest.setReturnUrl("http://localhost:8080/handleShopperRedirect");
+        paymentRequest.setReturnUrl("https://super-duper-space-engine-gvgxgq6j6rwcwqx7-8080.app.github.dev/handleShopperRedirect");
 
         paymentRequest.setShopperReference(SHOPPER_REFERENCE);
         paymentRequest.setStorePaymentMethod(true);
@@ -137,7 +140,7 @@ public class ApiController {
         authenticationData.setAttemptAuthentication(AuthenticationData.AttemptAuthenticationEnum.ALWAYS);
         paymentRequest.setAuthenticationData(authenticationData);
 
-        paymentRequest.setOrigin("https://localhost:8080");
+        paymentRequest.setOrigin("https://super-duper-space-engine-gvgxgq6j6rwcwqx7-8080.app.github.dev");
         paymentRequest.setBrowserInfo(body.getBrowserInfo());
         paymentRequest.setShopperIP("192.168.0.1");
 
@@ -168,7 +171,7 @@ public class ApiController {
 
         var orderRef = UUID.randomUUID().toString();
         paymentRequest.setReference(orderRef);
-        paymentRequest.setReturnUrl("http://localhost:8080/handleShopperRedirect");
+        paymentRequest.setReturnUrl("https://super-duper-space-engine-gvgxgq6j6rwcwqx7-8080.app.github.dev/handleShopperRedirect");
 
         paymentRequest.setShopperReference(SHOPPER_REFERENCE);
         paymentRequest.setShopperInteraction(PaymentRequest.ShopperInteractionEnum.CONTAUTH);
@@ -180,6 +183,129 @@ public class ApiController {
         log.info("PaymentWithTokenRequest token={} {}", token, paymentRequest);
         var response = paymentsApi.payments(paymentRequest, requestOptions);
         log.info("PaymentWithTokenResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Preauthorisation Step 1 - Pre-authorise a payment (manual capture)
+    @PostMapping("/api/preauthorisation")
+    public ResponseEntity<PaymentResponse> preauthorisation(@RequestBody PaymentRequest body) throws IOException, ApiException {
+        var paymentRequest = new PaymentRequest();
+
+        var amount = new Amount()
+                .currency("EUR")
+                .value(9998L);
+        paymentRequest.setAmount(amount);
+        paymentRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        paymentRequest.setChannel(PaymentRequest.ChannelEnum.WEB);
+        paymentRequest.setPaymentMethod(body.getPaymentMethod());
+
+        var orderRef = UUID.randomUUID().toString();
+        paymentRequest.setReference(orderRef);
+        paymentRequest.setReturnUrl("https://super-duper-space-engine-gvgxgq6j6rwcwqx7-8080.app.github.dev/handleShopperRedirect");
+
+        // Manual capture: set captureDelayHours to 0
+        paymentRequest.setCaptureDelayHours(0);
+
+        var authenticationData = new AuthenticationData();
+        authenticationData.setAttemptAuthentication(AuthenticationData.AttemptAuthenticationEnum.ALWAYS);
+        paymentRequest.setAuthenticationData(authenticationData);
+
+        paymentRequest.setOrigin("https://super-duper-space-engine-gvgxgq6j6rwcwqx7-8080.app.github.dev");
+        paymentRequest.setBrowserInfo(body.getBrowserInfo());
+        paymentRequest.setShopperIP("192.168.0.1");
+        paymentRequest.setShopperInteraction(PaymentRequest.ShopperInteractionEnum.ECOMMERCE);
+
+        var billingAddress = new BillingAddress();
+        billingAddress.setCity("Amsterdam");
+        billingAddress.setCountry("NL");
+        billingAddress.setPostalCode("1012KK");
+        billingAddress.setStreet("Rokin");
+        billingAddress.setHouseNumberOrName("49");
+        paymentRequest.setBillingAddress(billingAddress);
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("PreauthorisationRequest {}", paymentRequest);
+        var response = paymentsApi.payments(paymentRequest, requestOptions);
+        log.info("PreauthorisationResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Preauthorisation Step 2 - Adjust the authorised amount
+    @PostMapping("/api/modify-amount")
+    public ResponseEntity<PaymentAmountUpdateResponse> modifyAmount(
+            @RequestParam String pspReference,
+            @RequestParam(defaultValue = "9998") long amount,
+            @RequestParam(defaultValue = "EUR") String currency) throws IOException, ApiException {
+
+        var updateRequest = new PaymentAmountUpdateRequest();
+        updateRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        updateRequest.setAmount(new Amount().currency(currency).value(amount));
+        updateRequest.setIndustryUsage(PaymentAmountUpdateRequest.IndustryUsageEnum.DELAYEDCHARGE);
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("ModifyAmountRequest pspReference={} {}", pspReference, updateRequest);
+        var response = modificationsApi.updateAuthorisedAmount(pspReference, updateRequest, requestOptions);
+        log.info("ModifyAmountResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Preauthorisation Step 3 - Capture the authorised payment
+    @PostMapping("/api/capture")
+    public ResponseEntity<PaymentCaptureResponse> capture(
+            @RequestParam String pspReference,
+            @RequestParam(defaultValue = "9998") long amount,
+            @RequestParam(defaultValue = "EUR") String currency) throws IOException, ApiException {
+
+        var captureRequest = new CreatePaymentCaptureRequest();
+        captureRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        captureRequest.setAmount(new Amount().currency(currency).value(amount));
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("CaptureRequest pspReference={} {}", pspReference, captureRequest);
+        var response = modificationsApi.captureAuthorisedPayment(pspReference, captureRequest, requestOptions);
+        log.info("CaptureResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Preauthorisation Step 4 - Cancel an authorised payment
+    @PostMapping("/api/cancel")
+    public ResponseEntity<PaymentCancelResponse> cancel(@RequestParam String pspReference) throws IOException, ApiException {
+        var cancelRequest = new CreatePaymentCancelRequest();
+        cancelRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        cancelRequest.setReference(UUID.randomUUID().toString());
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("CancelRequest pspReference={} {}", pspReference, cancelRequest);
+        var response = modificationsApi.cancelAuthorisedPaymentByPspReference(pspReference, cancelRequest, requestOptions);
+        log.info("CancelResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Preauthorisation Step 5 - Refund a captured payment
+    @PostMapping("/api/refund")
+    public ResponseEntity<PaymentRefundResponse> refund(
+            @RequestParam String pspReference,
+            @RequestParam(defaultValue = "9998") long amount,
+            @RequestParam(defaultValue = "EUR") String currency) throws IOException, ApiException {
+
+        var refundRequest = new CreatePaymentRefundRequest();
+        refundRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        refundRequest.setAmount(new Amount().currency(currency).value(amount));
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("RefundRequest pspReference={} {}", pspReference, refundRequest);
+        var response = modificationsApi.refundCapturedPayment(pspReference, refundRequest, requestOptions);
+        log.info("RefundResponse {}", response);
         return ResponseEntity.ok().body(response);
     }
 

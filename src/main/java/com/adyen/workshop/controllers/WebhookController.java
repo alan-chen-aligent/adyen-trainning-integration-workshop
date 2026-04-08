@@ -55,13 +55,52 @@ public class WebhookController {
             // Success, log it for now
             log.info("Received webhook with event {}", item.toString());
 
-            // Tokenization: extract recurringDetailReference from RECURRING_CONTRACT webhooks
-            if ("RECURRING_CONTRACT".equals(item.getEventCode())) {
-                var additionalData = item.getAdditionalData();
-                String recurringDetailReference = additionalData != null
-                        ? additionalData.get("recurring.recurringDetailReference")
-                        : null;
-                log.info("RECURRING_CONTRACT received - recurringDetailReference (token): {}", recurringDetailReference);
+            switch (item.getEventCode()) {
+                case "RECURRING_CONTRACT" -> {
+                    // Tokenization: extract recurringDetailReference
+                    var additionalData = item.getAdditionalData();
+                    String recurringDetailReference = additionalData != null
+                            ? additionalData.get("recurring.recurringDetailReference")
+                            : null;
+                    log.info("RECURRING_CONTRACT received - recurringDetailReference (token): {}", recurringDetailReference);
+                }
+                case "AUTHORISATION" -> {
+                    log.info("AUTHORISATION received - pspReference: {} success: {}",
+                            item.getPspReference(), item.isSuccess());
+                }
+                case "AUTHORISATION_ADJUSTMENT" -> {
+                    log.info("AUTHORISATION_ADJUSTMENT received - pspReference: {} originalReference: {} success: {}",
+                            item.getPspReference(), item.getOriginalReference(), item.isSuccess());
+                }
+                case "CAPTURE" -> {
+                    log.info("CAPTURE received - pspReference: {} originalReference: {} success: {}",
+                            item.getPspReference(), item.getOriginalReference(), item.isSuccess());
+                }
+                case "CAPTURE_FAILED" -> {
+                    log.warn("CAPTURE_FAILED received - pspReference: {} originalReference: {} reason: {}",
+                            item.getPspReference(), item.getOriginalReference(), item.getReason());
+                }
+                case "CANCELLATION" -> {
+                    log.info("CANCELLATION received - pspReference: {} originalReference: {} success: {}",
+                            item.getPspReference(), item.getOriginalReference(), item.isSuccess());
+                }
+                case "TECHNICAL_CANCEL" -> {
+                    log.warn("TECHNICAL_CANCEL received - pspReference: {} originalReference: {}",
+                            item.getPspReference(), item.getOriginalReference());
+                }
+                case "REFUND" -> {
+                    log.info("REFUND received - pspReference: {} originalReference: {} success: {}",
+                            item.getPspReference(), item.getOriginalReference(), item.isSuccess());
+                }
+                case "REFUND_FAILED" -> {
+                    log.warn("REFUND_FAILED received - pspReference: {} originalReference: {} reason: {}",
+                            item.getPspReference(), item.getOriginalReference(), item.getReason());
+                }
+                case "REFUNDED_REVERSED" -> {
+                    log.warn("REFUNDED_REVERSED received - pspReference: {} originalReference: {}",
+                            item.getPspReference(), item.getOriginalReference());
+                }
+                default -> log.info("Unhandled event code: {}", item.getEventCode());
             }
 
             return ResponseEntity.accepted().build();
