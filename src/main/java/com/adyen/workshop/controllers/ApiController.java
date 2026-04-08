@@ -192,8 +192,8 @@ public class ApiController {
         var paymentRequest = new PaymentRequest();
 
         var amount = new Amount()
-                .currency("EUR")
-                .value(9998L);
+                .currency("USD")
+                .value(1000L);
         paymentRequest.setAmount(amount);
         paymentRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
         paymentRequest.setChannel(PaymentRequest.ChannelEnum.WEB);
@@ -306,6 +306,22 @@ public class ApiController {
         log.info("RefundRequest pspReference={} {}", pspReference, refundRequest);
         var response = modificationsApi.refundCapturedPayment(pspReference, refundRequest, requestOptions);
         log.info("RefundResponse {}", response);
+        return ResponseEntity.ok().body(response);
+    }
+
+    // Preauthorisation Step 6 - Reverse (cancel or refund) a payment regardless of state
+    @PostMapping("/api/reversals")
+    public ResponseEntity<PaymentReversalResponse> reversals(@RequestParam String pspReference) throws IOException, ApiException {
+        var reversalRequest = new PaymentReversalRequest();
+        reversalRequest.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
+        reversalRequest.setReference(UUID.randomUUID().toString());
+
+        var requestOptions = new RequestOptions();
+        requestOptions.setIdempotencyKey(UUID.randomUUID().toString());
+
+        log.info("ReversalRequest pspReference={} {}", pspReference, reversalRequest);
+        var response = modificationsApi.refundOrCancelPayment(pspReference, reversalRequest, requestOptions);
+        log.info("ReversalResponse {}", response);
         return ResponseEntity.ok().body(response);
     }
 
