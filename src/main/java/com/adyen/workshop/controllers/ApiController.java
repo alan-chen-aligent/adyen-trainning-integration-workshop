@@ -2,7 +2,6 @@ package com.adyen.workshop.controllers;
 
 import com.adyen.model.RequestOptions;
 import com.adyen.model.checkout.*;
-import com.adyen.model.checkout.details.PaymentCompletionDetails;
 import com.adyen.workshop.configurations.ApplicationConfiguration;
 import com.adyen.service.checkout.PaymentsApi;
 import com.adyen.service.exception.ApiException;
