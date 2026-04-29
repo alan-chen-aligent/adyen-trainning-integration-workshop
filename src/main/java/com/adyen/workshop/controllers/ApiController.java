@@ -203,8 +203,8 @@ public class ApiController {
         paymentRequest.setReference(orderRef);
         paymentRequest.setReturnUrl("https://super-duper-space-engine-gvgxgq6j6rwcwqx7-8080.app.github.dev/handleShopperRedirect");
 
-        // Manual capture: set captureDelayHours to 0
-        paymentRequest.setCaptureDelayHours(0);
+        // 99999 = manual capture (never auto-capture)
+        paymentRequest.setCaptureDelayHours(99999);
 
         var authenticationData = new AuthenticationData();
         authenticationData.setAttemptAuthentication(AuthenticationData.AttemptAuthenticationEnum.ALWAYS);
