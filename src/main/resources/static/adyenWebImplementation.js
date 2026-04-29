@@ -90,7 +90,7 @@ async function startCheckout() {
 
         // Start the AdyenCheckout and mount the element onto the `payment`-div.
         const adyenCheckout = await AdyenCheckout(configuration);
-        const dropin = new Dropin(adyenCheckout, { paymentMethodsConfiguration: paymentMethodsConfiguration }).mount(document.getElementById("payment"));
+        new Dropin(adyenCheckout, { paymentMethodsConfiguration: paymentMethodsConfiguration }).mount(document.getElementById("payment"));
     } catch (error) {
         console.error(error);
         alert("Error occurred. Look at console for details.");
@@ -115,7 +115,7 @@ function handleOnPaymentCompleted(response) {
 
 // Step 10 - Function to handle payment failure redirects
 function handleOnPaymentFailed(response) {
-    switch (response.resultCode) {
+    switch (response?.resultCode) {
         case "Cancelled":
         case "Refused":
             window.location.href = "/result/failed";
