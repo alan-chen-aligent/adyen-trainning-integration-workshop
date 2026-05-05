@@ -13,9 +13,11 @@ async function startCheckout() {
         });
         const paymentMethodsData = await paymentMethodsResponse.json();
 
+        const isPreauth = type === "preauth";
         const checkout = await AdyenCheckout({
             environment: "test",
             clientKey: clientKey,
+            countryCode: isPreauth ? "US" : "NL",
             paymentMethodsResponse: paymentMethodsData,
             onPaymentCompleted: handleOnPaymentCompleted,
             onPaymentFailed: handleOnPaymentFailed,
