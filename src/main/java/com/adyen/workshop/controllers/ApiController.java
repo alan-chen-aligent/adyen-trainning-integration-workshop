@@ -114,7 +114,7 @@ public class ApiController {
                 .industryUsage(PaymentAmountUpdateRequest.IndustryUsageEnum.DELAYEDCHARGE);
 
         log.info("AdjustAuthorisation: pspReference={}, amount={}", paymentPspReference, amount);
-        var response = modificationsApi.adjustAuthorisation(paymentPspReference, updateRequest);
+        var response = modificationsApi.updateAuthorisedAmount(paymentPspReference, updateRequest);
         return ResponseEntity.ok().body(response);
     }
 
@@ -138,7 +138,7 @@ public class ApiController {
     public ResponseEntity<PaymentCancelResponse> cancel(
             @RequestParam String paymentPspReference) throws IOException, ApiException {
 
-        var cancelRequest = new CreatePaymentCancelRequest()
+        var cancelRequest = new PaymentCancelRequest()
                 .merchantAccount(applicationConfiguration.getAdyenMerchantAccount())
                 .reference("cancel-" + UUID.randomUUID());
 
@@ -168,7 +168,7 @@ public class ApiController {
     public ResponseEntity<PaymentReversalResponse> reversal(
             @RequestParam String paymentPspReference) throws IOException, ApiException {
 
-        var reversalRequest = new CreatePaymentReversalRequest()
+        var reversalRequest = new PaymentReversalRequest()
                 .merchantAccount(applicationConfiguration.getAdyenMerchantAccount())
                 .reference("reversal-" + UUID.randomUUID());
 

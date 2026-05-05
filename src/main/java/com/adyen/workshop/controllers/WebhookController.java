@@ -32,14 +32,12 @@ public class WebhookController {
         var notificationRequest = NotificationRequest.fromJson(json);
 
         for (var item : notificationRequest.getNotificationItems()) {
-            var notification = item.getNotificationRequestItem();
-
-            if (!hmacValidator.validateHMAC(notification, applicationConfiguration.getAdyenHmacKey())) {
-                log.warn("HMAC validation failed for pspReference={}", notification.getPspReference());
+            if (!hmacValidator.validateHMAC(item, applicationConfiguration.getAdyenHmacKey())) {
+                log.warn("HMAC validation failed for pspReference={}", item.getPspReference());
                 return ResponseEntity.badRequest().body("Invalid HMAC signature");
             }
 
-            handleNotification(notification);
+            handleNotification(item);
         }
 
         return ResponseEntity.accepted().body("[accepted]");
