@@ -173,7 +173,7 @@ public class ApiController {
                 .reference("reversal-" + UUID.randomUUID());
 
         log.info("Reversal: pspReference={}", paymentPspReference);
-        var response = modificationsApi.reverseAuthorisedPayment(paymentPspReference, reversalRequest);
+        var response = modificationsApi.refundOrCancelPayment(paymentPspReference, reversalRequest);
         return ResponseEntity.ok().body(response);
     }
 
