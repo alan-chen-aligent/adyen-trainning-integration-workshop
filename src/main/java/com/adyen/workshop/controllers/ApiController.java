@@ -87,8 +87,9 @@ public class ApiController {
     }
 
     // PreAuth Step 1 - Create a pre-authorisation so we can adjust the amount before capture.
-    // captureDelayHours=168 postpones auto-capture by 7 days (works on every account, unlike
-    // additionalData.manualCapture which requires Support enablement).
+    // Note: captureDelayHours and additionalData.manualCapture are mutually exclusive — Adyen
+    // rejects requests that include both.
+    // captureDelayHours=168 postpones auto-capture by 7 days, leaving room to capture manually.
     // authorisationType=PreAuth marks this as a pre-auth so the network allows /amountUpdates.
     @PostMapping("/api/preauthorisation")
     public ResponseEntity<PaymentResponse> preAuthorisation(@RequestBody PaymentRequest body) throws IOException, ApiException {
@@ -99,7 +100,6 @@ public class ApiController {
         body.setCountryCode("US");
         body.setCaptureDelayHours(168);
         body.putAdditionalDataItem("authorisationType", "PreAuth");
-        body.putAdditionalDataItem("manualCapture", "true");
 
         log.info("PreAuth request: amount={}", body.getAmount());
         var response = paymentsApi.payments(body);
