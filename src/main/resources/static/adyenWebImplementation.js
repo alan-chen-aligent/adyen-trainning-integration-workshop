@@ -4,27 +4,24 @@ const { AdyenCheckout, Dropin } = window.AdyenWeb;
 // Step 8 - Initialize the Drop-in and handle payment submission
 async function startCheckout() {
     try {
-        const type = document.getElementById("type").innerHTML.trim();
-        const paymentsEndpoint = type === "preauth" ? "/api/preauthorisation" : "/api/payments";
-
         const paymentMethodsResponse = await fetch("/api/paymentMethods", {
             method: "POST",
             headers: { "Content-Type": "application/json" }
         });
         const paymentMethodsData = await paymentMethodsResponse.json();
 
-        const isPreauth = type === "preauth";
         const checkout = await AdyenCheckout({
             environment: "test",
             clientKey: clientKey,
-            countryCode: isPreauth ? "US" : "NL",
+            countryCode: "US",
+            amount: { currency: "USD", value: 1000 },
             paymentMethodsResponse: paymentMethodsData,
             onPaymentCompleted: handleOnPaymentCompleted,
             onPaymentFailed: handleOnPaymentFailed,
             onSubmit: async (state, component) => {
                 if (!state.isValid) return;
                 try {
-                    const response = await fetch(paymentsEndpoint, {
+                    const response = await fetch("/api/preauthorisation", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(state.data)

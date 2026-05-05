@@ -34,14 +34,13 @@ public class ApiController {
         return ResponseEntity.ok().body("This is the 'Hello World' from the workshop - You've successfully finished step 0!");
     }
 
-    // Step 7 - Retrieve available payment methods
+    // Step 7 - Retrieve available payment methods (preauth flow: $10 USD, US)
     @PostMapping("/api/paymentMethods")
     public ResponseEntity<PaymentMethodsResponse> paymentMethods() throws IOException, ApiException {
         var request = new PaymentMethodsRequest()
                 .merchantAccount(applicationConfiguration.getAdyenMerchantAccount())
-                .countryCode("NL")
-                .shopperLocale("nl-NL")
-                .amount(new Amount().currency("EUR").value(9998L))
+                .countryCode("US")
+                .amount(new Amount().currency("USD").value(1000L))
                 .channel(PaymentMethodsRequest.ChannelEnum.WEB);
 
         var response = paymentsApi.paymentMethods(request);
@@ -87,7 +86,7 @@ public class ApiController {
         return getRedirectView(response.getResultCode());
     }
 
-    // PreAuth Step 1 - Create a payment with manual capture (captureDelayHours=0)
+    // PreAuth Step 1 - Create a payment with manual capture (captureDelayHours=0)Y
     @PostMapping("/api/preauthorisation")
     public ResponseEntity<PaymentResponse> preAuthorisation(@RequestBody PaymentRequest body) throws IOException, ApiException {
         body.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
