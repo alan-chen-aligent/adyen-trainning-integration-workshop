@@ -86,7 +86,9 @@ public class ApiController {
         return getRedirectView(response.getResultCode());
     }
 
-    // PreAuth Step 1 - Create a payment with manual capture (captureDelayHours=0)Y
+    // PreAuth Step 1 - Create a payment with manual capture so we can adjust before settling.
+    // Note: captureDelayHours=0 means "capture immediately" — the WRONG knob. To disable auto-capture
+    // for this single payment, set additionalData.manualCapture=true.
     @PostMapping("/api/preauthorisation")
     public ResponseEntity<PaymentResponse> preAuthorisation(@RequestBody PaymentRequest body) throws IOException, ApiException {
         body.setMerchantAccount(applicationConfiguration.getAdyenMerchantAccount());
@@ -94,7 +96,7 @@ public class ApiController {
         body.setReference("preauth-" + UUID.randomUUID());
         body.setReturnUrl("http://localhost:" + applicationConfiguration.getServerPort() + "/handleShopperRedirect");
         body.setCountryCode("US");
-        body.setCaptureDelayHours(0);
+        body.putAdditionalDataItem("manualCapture", "true");
 
         log.info("PreAuth request: amount={}", body.getAmount());
         var response = paymentsApi.payments(body);
